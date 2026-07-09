@@ -162,6 +162,8 @@ FleetGuardian-AI/
 
 The driver's risk category is continuously calculated by the backend safety pipeline based on eye status, head directions, phone presence, and vehicle speed:
 
+![Driver Risk State Machine](docs/assets/driver-risk-state-machine.png)
+
 ```mermaid
 stateDiagram-v2
     [*] --> Safe
