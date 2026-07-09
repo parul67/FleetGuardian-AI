@@ -42,44 +42,47 @@ FleetGuardian AI maps inputs, computer vision detectors, backend logic pipelines
 
 ```mermaid
 flowchart TD
-    subgraph Input Layer
-        SF[CV Simulator / Webcam Feed]
-        T[Telemetry Generator]
+    subgraph InputLayer["Input Layer"]
+        SF["CV Simulator / Webcam Feed"]
+        T["Telemetry Generator"]
     end
 
-    subgraph Backend Pipeline [FastAPI Backend]
-        FE[Feature Extractor]
-        ML[Accident Risk Predictor]
-        AE[Alert Engine]
-        DB[(SQLite / Postgres Database)]
-        WM[WebSocket Manager]
+    subgraph CVCore["Computer Vision Engine"]
+        MP["MediaPipe Face Mesh"]
+        YO["YOLO Object Detection"]
+        LD["Lane Detector"]
     end
 
-    subgraph CV Core [Computer Vision Engine]
-        MP[MediaPipe Face Mesh]
-        YO[YOLO Object Detection]
-        LD[Lane Detector]
+    subgraph BackendPipeline["FastAPI Backend"]
+        FE["Feature Extractor"]
+        ML["Accident Risk Predictor"]
+        AE["Alert Engine"]
+        DB[("SQLite / Postgres Database")]
+        WM["WebSocket Manager"]
     end
 
-    subgraph Frontend Layer [React Dashboard]
-        FD[Dashboard App]
-        V[Video Render]
-        A[Alert Panels]
-        K[KPI Metrics]
+    subgraph FrontendLayer["React Dashboard"]
+        FD["Dashboard App"]
+        V["Video Render"]
+        A["Alert Panels"]
+        K["KPI Metrics"]
     end
 
     SF -->|Raw Frames| FE
     T -->|Vehicle Telemetry| FE
-    FE -->|Crop & Face RGB| CV Core
-    CV Core -->|EAR, MAR, Head Pitch/Yaw/Roll| FE
-    CV Core -->|Seatbelt, Phone, Lane Offset| FE
+    FE -->|Face RGB| MP
+    FE -->|Frame| YO
+    FE -->|Frame| LD
+    MP -->|EAR, MAR, Head Pose| FE
+    YO -->|Phone, Seatbelt| FE
+    LD -->|Lane Offset| FE
     FE -->|Aggregated Features| ML
     FE -->|Safety Metrics| AE
-    ML -->|Accident Risk Level| WM
-    AE -->|Safety Alerts| DB
-    AE -->|Safety Alerts| WM
-    WM -->|WS /ws/video (Base64 + Metrics)| FD
-    WM -->|WS /ws/alerts (Real-Time Alerts)| FD
+    ML -->|Risk Level| WM
+    AE -->|Alerts| DB
+    AE -->|Alerts| WM
+    WM -->|WS /ws/video| FD
+    WM -->|WS /ws/alerts| FD
     FD --> V
     FD --> A
     FD --> K
@@ -167,17 +170,17 @@ The driver's risk category is continuously calculated by the backend safety pipe
 ```mermaid
 stateDiagram-v2
     [*] --> Safe
-    
-    Safe --> Distracted : Distraction Score > 0.4 OR Gaze Yaw/Pitch > 15.0°
-    Distracted --> Safe : Looking forward AND Attention score recovered
-    
-    Safe --> Fatigued : EAR < 0.25 (Eye closure > 2s) OR Yawning > 2
-    Fatigued --> Safe : Eyelids open AND Yawning stops
-    
-    Distracted --> Critical : Speed > 80 km/h OR Phone Detected > 1s
-    Fatigued --> Critical : Eye closure > 5s OR Speed > 80 km/h
-    
-    Critical --> Safe : Alert acknowledged AND Driver focus restored
+
+    Safe --> Distracted : Distraction score above 0.4 or gaze yaw-pitch above 15 deg
+    Distracted --> Safe : Looking forward and attention score recovered
+
+    Safe --> Fatigued : EAR below 0.25 for 2s or yawning count above 2
+    Fatigued --> Safe : Eyelids open and yawning stops
+
+    Distracted --> Critical : Speed above 80 kmh or phone detected
+    Fatigued --> Critical : Eye closure above 5s or speed above 80 kmh
+
+    Critical --> Safe : Alert acknowledged and driver focus restored
 ```
 
 ---
