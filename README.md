@@ -38,6 +38,8 @@ Commercial fleet operations face substantial liability and safety challenges due
 
 FleetGuardian AI maps inputs, computer vision detectors, backend logic pipelines, database state management, and dashboard visualization blocks:
 
+![System Architecture](docs/assets/system-architecture.png)
+
 ```mermaid
 flowchart TD
     subgraph Input Layer
