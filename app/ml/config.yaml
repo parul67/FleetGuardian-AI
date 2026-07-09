@@ -1,0 +1,61 @@
+model_selection:
+  metric_weights:
+    accuracy: 1.0
+    precision: 1.0
+    recall: 1.0
+    f1: 1.0
+    roc_auc: 1.0
+  cv_folds: 5
+
+training:
+  test_size: 0.2
+  random_state: 42
+  models:
+    random_forest:
+      n_estimators: 200
+      max_depth: null
+    xgboost:
+      n_estimators: 200
+      max_depth: 6
+      learning_rate: 0.1
+    gradient_boosting:
+      n_estimators: 200
+      learning_rate: 0.1
+    logistic_regression:
+      C: 1.0
+      max_iter: 1000
+
+preprocessing:
+  missing_value_strategy: "median"
+  outlier_detection:
+    method: "isolation_forest"
+    contamination: 0.01
+  scaling: "standard"
+  encoding: "one_hot"
+  feature_selection:
+    method: "select_k_best"
+    k: 15
+
+features:
+  list:
+    - speed
+    - acceleration
+    - braking_intensity
+    - steering_angle
+    - phone_usage
+    - drowsiness_score
+    - lane_departure
+    - seatbelt
+    - fatigue_level
+    - blink_rate
+    - distraction_score
+    - lane_offset
+    - trip_duration
+
+paths:
+  model_dir: "models"
+  scaler_path: "models/scaler.joblib"
+  encoder_path: "models/encoder.joblib"
+  feature_list_path: "models/feature_list.joblib"
+  best_model_path: "models/best_model.joblib"
+  evaluation_report_path: "docs/model_evaluation.md"

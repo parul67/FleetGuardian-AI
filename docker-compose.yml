@@ -1,0 +1,125 @@
+version: "3.9"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# FleetGuardian AI – Full Stack Docker Compose
+# ──────────────────────────────────────────────────────────────────────────────
+# Services:
+#   backend   – FastAPI (Uvicorn) on port 8000
+#   frontend  – Vite/React static files served via Nginx on port 80
+#   postgres  – PostgreSQL 15 (data-volume backed)
+#   prometheus – Metrics scraping on port 9090
+#   grafana   – Dashboard visualisation on port 3000
+#
+# Usage:
+#   cp .env.example .env   # then fill in your secrets
+#   docker compose up -d --build
+# ──────────────────────────────────────────────────────────────────────────────
+
+networks:
+  fleetguardian-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  grafana_data:
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: fleetguardian-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fleetadmin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fleetsecret}
+      POSTGRES_DB: ${POSTGRES_DB:-fleetguardian}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - fleetguardian-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fleetadmin} -d ${POSTGRES_DB:-fleetguardian}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Backend ─────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: fleetguardian-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+    - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      POSTGRES_HOST: postgres
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - fleetguardian-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── React/Vite Frontend (served via Nginx) ──────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: fleetguardian-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - fleetguardian-net
+    depends_on:
+      - backend
+
+  # ── Prometheus ───────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: fleetguardian-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+    networks:
+      - fleetguardian-net
+    depends_on:
+      - backend
+
+  # ── Grafana ──────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: fleetguardian-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - fleetguardian-net
+    depends_on:
+      - prometheus

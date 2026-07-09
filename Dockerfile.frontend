@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install dependencies first for better caching
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm ci
+
+# Copy the rest of the application
+COPY frontend/ .
+
+# Build the Vite application
+RUN npm run build
+
+# Final stage: Nginx
+FROM nginx:alpine
+
+# Copy built assets to Nginx html directory
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Custom Nginx configuration will be mounted via docker-compose
+# EXPOSE 80 done by Nginx image natively
+CMD ["nginx", "-g", "daemon off;"]

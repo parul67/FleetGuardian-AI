@@ -1,0 +1,69 @@
+# FleetGuardian AI – Data Preprocessing Configuration
+
+preprocessing:
+  # Artifact output directory (fitted scalers, encoders saved here)
+  artifacts_dir: "models/preprocessing"
+  
+  # Processed dataset output
+  processed_dir: "datasets/processed"
+
+  # Feature groups
+  numeric_features:
+    - speed
+    - eye_ratio
+    - mouth_ratio
+    - blink_rate
+    - eye_closed_seconds
+    - yawning_count
+    - fatigue_score
+    - distraction_score
+    - phone_usage_duration
+    - lane_offset
+    - lane_departure_count
+    - trip_duration
+    - alert_count
+
+  categorical_features:
+    - head_direction
+    - weather
+    - time_of_day
+
+  boolean_features:
+    - phone_detected
+    - seatbelt_status
+
+  # Target column
+  target_column: risk_level
+
+  # Columns to drop before training (identifiers, not features)
+  drop_columns:
+    - driver_id
+    - vehicle_id
+    - trip_id
+
+  # Missing value imputation strategy
+  imputation:
+    numeric_strategy: median      # mean | median | constant
+    numeric_fill_value: 0.0       # used only when strategy=constant
+    categorical_strategy: most_frequent   # most_frequent | constant
+    categorical_fill_value: unknown
+
+  # Outlier detection
+  outlier_detection:
+    method: iqr            # iqr | zscore
+    iqr_multiplier: 1.5
+    zscore_threshold: 3.0
+    action: clip           # clip | remove
+
+  # Feature scaling
+  scaling:
+    method: standard       # standard | minmax | robust
+    # MinMaxScaler range (only used when method=minmax)
+    feature_range: [0, 1]
+
+  # Dataset split ratios (must sum to 1.0)
+  split:
+    test_size: 0.15
+    val_size: 0.15         # fraction of the non-test portion
+    random_state: 42
+    stratify: true         # stratify by target (risk_level)
