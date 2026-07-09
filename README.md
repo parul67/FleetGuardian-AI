@@ -43,7 +43,7 @@ FleetGuardian AI maps inputs, computer vision detectors, backend logic pipelines
 ```mermaid
 flowchart TD
     subgraph InputLayer["Input Layer"]
-        SF["CV Simulator / Webcam Feed"]
+        SF["Webcam / CV Simulator"]
         T["Telemetry Generator"]
     end
 
@@ -57,7 +57,7 @@ flowchart TD
         FE["Feature Extractor"]
         ML["Accident Risk Predictor"]
         AE["Alert Engine"]
-        DB[("SQLite / Postgres Database")]
+        DB[("Database")]
         WM["WebSocket Manager"]
     end
 
@@ -69,20 +69,20 @@ flowchart TD
     end
 
     SF -->|Raw Frames| FE
-    T -->|Vehicle Telemetry| FE
+    T -->|Telemetry| FE
     FE -->|Face RGB| MP
     FE -->|Frame| YO
     FE -->|Frame| LD
-    MP -->|EAR, MAR, Head Pose| FE
-    YO -->|Phone, Seatbelt| FE
+    MP -->|EAR - MAR - Head Pose| FE
+    YO -->|Phone - Seatbelt| FE
     LD -->|Lane Offset| FE
     FE -->|Aggregated Features| ML
     FE -->|Safety Metrics| AE
     ML -->|Risk Level| WM
     AE -->|Alerts| DB
     AE -->|Alerts| WM
-    WM -->|WS /ws/video| FD
-    WM -->|WS /ws/alerts| FD
+    WM -->|ws-video stream| FD
+    WM -->|ws-alerts stream| FD
     FD --> V
     FD --> A
     FD --> K
@@ -171,16 +171,16 @@ The driver's risk category is continuously calculated by the backend safety pipe
 stateDiagram-v2
     [*] --> Safe
 
-    Safe --> Distracted : Distraction score above 0.4 or gaze yaw-pitch above 15 deg
-    Distracted --> Safe : Looking forward and attention score recovered
+    Safe --> Distracted : Distraction above 0.4 or head angle above 15deg
+    Distracted --> Safe : Forward gaze and attention restored
 
-    Safe --> Fatigued : EAR below 0.25 for 2s or yawning count above 2
+    Safe --> Fatigued : EAR below 0.25 for 2s or yawning above 2
     Fatigued --> Safe : Eyelids open and yawning stops
 
-    Distracted --> Critical : Speed above 80 kmh or phone detected
-    Fatigued --> Critical : Eye closure above 5s or speed above 80 kmh
+    Distracted --> Critical : Speed above 80kmh or phone detected
+    Fatigued --> Critical : Eye closure above 5s or speed above 80kmh
 
-    Critical --> Safe : Alert acknowledged and driver focus restored
+    Critical --> Safe : Alert acknowledged and focus restored
 ```
 
 ---
