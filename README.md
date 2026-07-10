@@ -142,7 +142,6 @@ FleetGuardian-AI/
 | **Persistence Layer** | `PostgreSQL / SQLite` | Stores trip logs, user records, driver history, and edge-triggered safety alerts. |
 | **ORM / Migration** | `SQLAlchemy` | Maps Python classes to relational database tables with foreign key constraints. |
 | **Frontend Framework** | `React 19 / TS / Vite` | Decodes Base64 stream, manages client state, and displays gauges/maps. |
-| **Observability** | `Prometheus & Grafana` | Exposes performance metrics and charts HTTP response latencies. |
 | **Containerization** | `Docker & Compose` | Wraps frontend, backend, database, and telemetry monitoring in isolated boxes. |
 
 ---
